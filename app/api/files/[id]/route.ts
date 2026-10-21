@@ -1,9 +1,9 @@
-import {getChatGPTUser} from '../../../chatgpt-auth';
+import {getAuthUser} from '../../../auth';
 import {database,bucket,json,guard,memberProject} from '../../../lib/server';
 import type {StoredFile} from '../../../lib/types';
 export const dynamic='force-dynamic';
 export async function GET(req:Request,{params}:{params:Promise<{id:string}>}){return guard(async()=>{
- const user=await getChatGPTUser();if(!user)return json({error:'Connexion requise'},401);
+ const user=await getAuthUser();if(!user)return json({error:'Connexion requise'},401);
  const {id}=await params;
  const file=await database().prepare('SELECT * FROM files WHERE id=?').bind(id).first<StoredFile & {key:string}>();
  if(!file)return json({error:'Fichier introuvable.'},404);

@@ -1,45 +1,80 @@
-# ProjectMentor
+# ESSTep
 
-Espace de suivi des projets étudiants : tableau de bord, comptes étudiant/encadrant, projets, tâches, discussions, notifications, fichiers et galerie des projets terminés. Interface responsive en français, thèmes jour et nuit avec préférence mémorisée sur l’appareil. Sur téléphone : navigation en bas, menu latéral, onglets de projet compacts, formulaires tactiles, fenêtres en panneau inférieur et prise en compte des zones réservées de l’écran. Le même lien et les mêmes données sont utilisés sur ordinateur et mobile.
+Un espace en français pour organiser les projets étudiants et travailler avec leurs encadrants : projets, tâches, discussions, notifications, documents, profils et galerie des réalisations.
 
-## Utilisation
+Cette version se déploie sur **ton propre compte Cloudflare**, avec une **connexion Google via Firebase**. Les visiteurs n’ont pas besoin de compte ChatGPT. GitHub conserve le code ; GitHub Pages seul ne peut pas exécuter ce serveur et sa base de données.
 
-- Connexion via ChatGPT et création d’un profil. Dans « Mon compte », le choix de l’espace étudiant ou encadrant affiche les projets où l’utilisateur a ce rôle, sans créer de compte supplémentaire ni élargir ses autorisations.
-- Un projet est créé par un étudiant, qui peut inviter plusieurs étudiants et encadrants par adresse e-mail. Les nouveaux invités acceptent avant d’accéder aux données ; les accès des anciens projets sont conservés via une vue de compatibilité, sans modification des anciennes migrations. L’encadrant utilise « Trouver un étudiant », consulte ses projets déjà partagés ou lui adresse une demande interne de suivi. L’étudiant accepte la demande en sélectionnant un de ses projets ; l’encadrant reçoit alors le titre, la description et le GitHub existants et peut les modifier avec l’équipe. Un nouveau projet crée une première tâche « Préparer le cahier des charges », en cours. Étudiant et encadrant peuvent créer des tâches et actualiser les statuts.
-- Le tableau de bord étudiant distingue projets en cours, tâches en cours, projets terminés et notifications non lues.
-- L’espace encadrant possède un tableau de bord dédié, une liste des étudiants associés à ses projets, des filtres par étudiant, des tâches en retard et des projets prêts à clôturer. Les retours et relances sont des messages identifiés dans la discussion du projet avec notification interne à l’étudiant. Seuls les encadrants membres acceptés du projet, dans leur espace encadrant, peuvent utiliser ces actions. Une priorité normale ou haute peut être choisie pour chaque nouvelle tâche.
-- Les messages, tâches, fichiers partagés et changements de statut créent une notification pour les autres membres concernés. Une notification ouvre la section concernée. Les discussions sont actualisées toutes les 20 secondes quand le site est visible.
-- Un projet est clôturé lorsque toutes ses tâches sont terminées. Son étudiant propriétaire peut le partager volontairement dans la galerie. Seuls le titre, la description, le lien, le nom, la photo et la date de fin sont partagés ; les documents, emails de participants et discussions restent privés.
-- Les fichiers sont accessibles directement dans chaque projet : aperçu dans la vue d’ensemble, onglet dédié et import automatiquement associé au projet. Les deux participants peuvent les consulter. Les documents personnels déposés dans une ancienne version restent accessibles à leur propriétaire ; une action explicite dans l’onglet fichiers permet de les associer au projet choisi. Taille maximale : 10 Mo par fichier. Téléchargement en pièce jointe, aucune exécution des documents importés.
-- Le compte permet de modifier le nom, la présentation, un lien de portfolio et la photo (PNG/JPEG/WebP, 2 Mo maximum).
+## Démarrer
 
-## Accès au site
+Prérequis : **Node.js 24**, **pnpm 11.25.0** et Git. Windows, Linux et macOS sont pris en charge.
 
-L’audience de publication reste privée pour le propriétaire. Ajouter une adresse à un projet ne donne pas automatiquement l’accès au site et n’envoie pas d’email : les participants doivent recevoir l’accès via les réglages de partage du site. Les notifications sont internes à l’application.
+```sh
+git clone https://github.com/SabrinaTao31/ESSTep.git
+cd ESSTep
+corepack enable
+corepack prepare pnpm@11.25.0 --activate
+pnpm install --frozen-lockfile
+```
+
+Le dépôt étant privé, GitHub demandera une connexion au compte autorisé pour le cloner. Si Corepack n’est pas installé, installe pnpm avec `npm install -g pnpm@11.25.0`.
+
+Copie `.dev.vars.example` vers `.dev.vars` et renseigne la configuration de ton application Web Firebase. Active le fournisseur Google et autorise `localhost` dans Firebase Authentication.
+
+```sh
+pnpm db:migrate
+pnpm dev
+```
+
+Ouvre <http://localhost:3000>. La base D1 et le stockage R2 sont simulés localement ; le développement local ne demande pas de compte Cloudflare. Une véritable configuration Firebase est nécessaire pour la connexion Google.
+
+## Mettre en ligne
+
+Le [guide de déploiement pas à pas](docs/DEPLOIEMENT.md) explique comment configurer Firebase, créer D1 et R2, remplir `wrangler.json` et publier le site. Les identifiants de production sont volontairement laissés vides : ce dépôt ne crée ni ne configure tes comptes externes.
+
+```sh
+pnpm deploy:check
+pnpm deploy
+```
+
+`deploy:check` bloque une configuration incomplète. `deploy` vérifie le code, construit le Worker, applique les migrations puis publie sur Cloudflare. Le stockage R2 possède des quotas gratuits mais nécessite son activation et peut générer des frais au-delà des quotas : voir le guide avant de l’activer.
+
+## Vérifications
+
+```sh
+pnpm check
+pnpm build
+```
+
+- Authentification : signature RSA, émetteur et projet Firebase, expiration, adresse vérifiée, cookies, origine des requêtes et redirections.
+- Accès : anciennes migrations, invitations, équipes de plusieurs étudiants/encadrants, suivis, galerie, notifications et fichiers privés.
+- Réponses : erreurs réseau, session expirée, HTML inattendu et erreurs serveur.
+
+GitHub Actions exécute ces vérifications et la compilation à chaque modification de `main` ou proposition de changement, sans identifiants de production.
+
+## Fonctionnalités
+
+- Espaces étudiant et encadrant, tableau de bord et suivi de plusieurs projets.
+- Invitations par adresse Google, acceptées explicitement avant tout accès aux projets.
+- Tâches, priorités, échéances, discussions, retours et relances ; notifications internes, sans envoi d’email.
+- Documents de projet jusqu’à 10 Mo et avatars PNG/JPEG/WebP jusqu’à 2 Mo.
+- Galerie des projets terminés avec partage volontaire ; documents et discussions privés.
+- Interface mobile, thèmes jour et nuit, personnalisation du profil et lien de portfolio.
 
 ## Architecture
 
-React / TypeScript / Vinext sur Cloudflare Workers ; identité fournie par Sites ; D1 pour les données, R2 pour les documents et avatars. Déclarations dans `.openai/hosting.json`, migrations Drizzle immuables dans `drizzle/`.
+| Dossier | Contenu |
+| --- | --- |
+| `app/` | Pages React, connexion, espaces de travail et routes API |
+| `components/`, `hooks/` | Composants réutilisables et hooks |
+| `lib/` | Vérification des identités et utilitaires |
+| `db/`, `drizzle/` | Schéma D1 et migrations conservées |
+| `public/` | Logos et images |
+| `worker/` | Entrée Cloudflare Workers |
+| `tests/` | Tests d’authentification, d’accès et de réponses |
+| `docs/` | Déploiement et reprise des données |
 
-- Interface : `app/workspace.tsx`, `app/globals.css`
-- Données et notifications : `app/api/workspace/route.ts`
-- Import et téléchargement des fichiers : `app/api/files/`
-- Gestion des réponses et des erreurs : `app/api-client.ts`
+React 19, TypeScript, Vinext/Vite, Cloudflare Workers, D1 et R2. Firebase Authentication sert uniquement à la connexion Google. Aucune clé privée Firebase ni service de paiement n’est requis par le code de connexion.
 
-Les dossiers de développement du starter et les helpers Sites gèrent installation, compilation, synchronisation Git et déploiement. Un simple hébergement statique ne suffit pas ; un changement d’hébergeur nécessitera d’adapter l’identité et les données.
+## Données de l’ancien site
 
-## Vérification
-
-`node node_modules/typescript/bin/tsc --noEmit`
-
-`node tests/access.mjs` : tests sur une vraie base SQLite en mémoire et un stockage d’objets simulé, couvrant les migrations, la visibilité des projets et des documents, les notifications, les statuts et l’édition du profil.
-
-`node tests/responses.mjs` : réponses JSON, HTML inattendu, expiration de session, redirections et erreurs réseau.
-
-Le parcours avec plusieurs comptes et le rendu dans un navigateur restent à vérifier après ouverture des accès. Pas de notifications push, de messagerie hors projet, de suppression des projets ou des fichiers dans cette version.
-
-## Connexion Google / Gmail — limite actuelle
-
-Les invitations et les demandes de suivi utilisent des adresses e-mail, dont Gmail. La possession d’une adresse ne peut pas être déclarée simplement dans un formulaire pour obtenir des accès : l’identité continue à provenir de l’authentification vérifiée de Sites.
-
-La connexion au site est encore celle de Sites/ChatGPT. Aucun OAuth Google autonome n’est configuré et aucun bouton ne prétend le contraire. L’authentification Google indépendante demandée nécessite une configuration Google OAuth et un environnement de déploiement permettant cette identité comme point d’entrée, avec reprise vérifiée des comptes existants. Elle reste à réaliser ; les données de projet ne deviennent pas publiques.
+Le code GitHub ne contient pas les données et fichiers de l’ancienne publication Sites. Ils ne sont pas transférés par un simple déploiement. Lis [le guide de migration](docs/MIGRATION.md) avant de remplacer un site déjà utilisé. Le site d’origine reste indépendant de ce dépôt.

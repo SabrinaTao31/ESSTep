@@ -1,4 +1,4 @@
-import {getChatGPTUser} from '../../chatgpt-auth';
+import {getAuthUser} from '../../auth';
 import {database,bucket,json,guard,validOrigin,memberProject,notifyMembers} from '../../lib/server';
 import type {Profile,Project} from '../../lib/types';
 export const dynamic='force-dynamic';
@@ -10,7 +10,7 @@ function imageType(bytes:Uint8Array){
 }
 export async function POST(req:Request){return guard(async()=>{
  if(!validOrigin(req))return json({error:'Origine refusée'},403);
- const user=await getChatGPTUser();if(!user)return json({error:'Connexion requise'},401);
+ const user=await getAuthUser();if(!user)return json({error:'Connexion requise'},401);
  const profile=await database().prepare('SELECT * FROM profiles WHERE id=?').bind(user.userId).first<Profile>();
  if(!profile)return json({error:'Crée ton profil pour continuer.'},403);
  if(Number(req.headers.get('Content-Length')??0)>12*1024*1024)return json({error:'Le fichier doit peser moins de 10 Mo.'},413);

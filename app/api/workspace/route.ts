@@ -1,4 +1,4 @@
-import {getChatGPTUser} from '../../chatgpt-auth';
+import {getAuthUser} from '../../auth';
 import {database as db,json,guard,validOrigin,notify,memberProject,notifyMembers} from '../../lib/server';
 import type {Profile,Project} from '../../lib/types';
 import {z} from 'zod';
@@ -30,7 +30,7 @@ const input=z.discriminatedUnion('action',[
  z.object({action:z.literal('respond-follow'),id,accept:z.boolean(),project:id.optional()}),
 ]);
 async function getWorkspace(){
- const user=await getChatGPTUser();if(!user)return json({error:'Connexion requise'},401);
+ const user=await getAuthUser();if(!user)return json({error:'Connexion requise'},401);
  const profile=await db().prepare('SELECT * FROM profiles WHERE id=?').bind(user.userId).first<Profile>();
  if(!profile)return json({profile:null,projects:[],tasks:[],comments:[],notifications:[],files:[],gallery:[],unreadCount:0,students:[],members:[],invitations:[],follows:[]});
  const mail=user.email.toLowerCase(),role=profile.role;
@@ -54,13 +54,15 @@ async function getWorkspace(){
 }
 async function updateWorkspace(req:Request){
  if(!validOrigin(req))return json({error:'Origine refusée'},403);
- const user=await getChatGPTUser();if(!user)return json({error:'Connexion requise'},401);
+ const user=await getAuthUser();if(!user)return json({error:'Connexion requise'},401);
  let raw;try{raw=await req.json()}catch{return json({error:'Requête invalide'},400)}
  const parsed=input.safeParse(raw);if(!parsed.success)return json({error:'Vérifie les champs du formulaire.'},400);
  const data=parsed.data,mail=user.email.toLowerCase(),now=new Date().toISOString();
  const profile=await db().prepare('SELECT * FROM profiles WHERE id=?').bind(user.userId).first<Profile>();
  if(data.action==='profile'){
   if(profile)return json({error:'Profil déjà créé'},409);
+  const existing=await db().prepare('SELECT id FROM profiles WHERE email=?').bind(mail).first();
+  if(existing)return json({error:'Un ancien profil utilise cette adresse. Contacte le responsable du site pour le récupérer.'},409);
   await db().prepare('INSERT INTO profiles(id,email,name,role) VALUES(?,?,?,?)').bind(user.userId,mail,data.name,data.role).run();return json({ok:true});
  }
  if(!profile)return json({error:'Crée ton profil pour continuer'},403);
